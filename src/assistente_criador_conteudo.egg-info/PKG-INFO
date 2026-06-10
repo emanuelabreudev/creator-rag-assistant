@@ -2,7 +2,7 @@ Metadata-Version: 2.4
 Name: assistente-criador-conteudo
 Version: 0.1.0
 Summary: Assistente RAG para criadores de conteudo (publicidade, saude, direitos autorais, LGPD)
-Requires-Python: <4.0,>=3.10
+Requires-Python: <3.13,>=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: openai>=1.40
 Requires-Dist: chromadb>=0.5
@@ -20,10 +20,11 @@ Requires-Dist: ruff>=0.6; extra == "dev"
 Provides-Extra: obs
 Requires-Dist: langfuse>=2.0; extra == "obs"
 Provides-Extra: eval
-Requires-Dist: ragas>=0.2; extra == "eval"
+Requires-Dist: ragas==0.4.3; extra == "eval"
 Requires-Dist: datasets>=2.0; extra == "eval"
 Requires-Dist: langchain-openai>=0.1; extra == "eval"
 Requires-Dist: langchain-huggingface>=0.1; extra == "eval"
+Requires-Dist: langchain-community<0.4.2; extra == "eval"
 
 # 🎬 Assistente do Criador de Conteúdo
 
@@ -79,19 +80,21 @@ flowchart LR
 
 ## Setup
 
-```bash
-# 1. Dependências
-uv venv && source .venv/bin/activate
-uv sync                       # ou: pip install -e .
+### Instalação local
 
+```bash
+# criar/ativar ambiente
+python3 -m venv .venv
+source .venv/bin/activate
+
+# instalar tudo de uma vez
+pip install -e ".[dev,eval,obs]"
 # 2. Chave (Groq)
 cp .env.example .env          # edite e cole sua GROQ_API_KEY (https://console.groq.com/keys)
-
-# 3. Instalar todas as dependências
-pip install -e .
-
 # 4. Rodar local (o 1º run baixa o modelo de embeddings e indexa o corpus)
 streamlit run src/ui/streamlit_app.py
+# Rodar a avaliação RAGAS
+python scripts/eval_ragas.py
 ```
 
 Testes (rodam sem chave; o de integração pula se não houver `GROQ_API_KEY`):

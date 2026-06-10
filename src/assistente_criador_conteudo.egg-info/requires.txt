@@ -14,10 +14,11 @@ pytest>=8.0
 ruff>=0.6
 
 [eval]
-ragas>=0.2
+ragas==0.4.3
 datasets>=2.0
 langchain-openai>=0.1
 langchain-huggingface>=0.1
+langchain-community<0.4.2
 
 [obs]
 langfuse>=2.0

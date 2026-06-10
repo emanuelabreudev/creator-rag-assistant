@@ -27,12 +27,16 @@ sys.path.insert(0, str(_ROOT))
 load_dotenv()
 
 from datasets import Dataset  # noqa: E402
-from langchain_huggingface import HuggingFaceEmbeddings  # noqa: E402
-from langchain_openai import ChatOpenAI  # noqa: E402
+from openai import OpenAI  # noqa: E402
 from ragas import evaluate  # noqa: E402
-from ragas.embeddings import LangchainEmbeddingsWrapper  # noqa: E402
-from ragas.llms import LangchainLLMWrapper  # noqa: E402
-from ragas.metrics import answer_relevancy, context_precision, faithfulness  # noqa: E402
+from ragas.llms import llm_factory  # noqa: E402
+from ragas.embeddings import HuggingFaceEmbeddings  # noqa: E402
+
+from ragas.metrics import (
+    AnswerRelevancy,
+    ContextPrecision,
+    Faithfulness,
+)
 from ragas.run_config import RunConfig  # noqa: E402
 
 from src.pipeline.rag import build_rag_pipeline  # noqa: E402
@@ -99,8 +103,8 @@ def main() -> None:
 
     records = []
     for it in GOLDEN:
-        out = pipe.answer(it["question"], k=5)  # RAG puro p/ eval (sem tool)
-        hits = pipe.retrieve(it["question"], k=5)
+        out = pipe.answer(it["question"], k=3)  # RAG puro p/ eval (sem tool)
+        hits = pipe.retrieve(it["question"], k=3)
         records.append(
             {
                 "user_input": it["question"],
@@ -110,27 +114,31 @@ def main() -> None:
             }
         )
     ds = Dataset.from_list(records)
-
+    
     api_key = os.environ["GROQ_API_KEY"]
-    judge_llm = LangchainLLMWrapper(
-        ChatOpenAI(
-            model=os.environ.get("CHEAP_MODEL", "llama-3.1-8b-instant"),
-            base_url="https://api.groq.com/openai/v1",
-            api_key=api_key,
-            temperature=0.0,
-        )
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://api.groq.com/openai/v1",
     )
-    judge_embed = LangchainEmbeddingsWrapper(
-        HuggingFaceEmbeddings(
-            model_name=os.environ.get("EMBED_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
-        )
+
+    judge_llm = llm_factory(
+        os.environ.get("CHEAP_MODEL", "llama-3.1-8b-instant"),
+        client=client,
     )
-    # 1 worker + backoff longo: respeita o TPM do free tier e re-tenta 429 em vez de NaN.
+
+    judge_embed = HuggingFaceEmbeddings(
+        model=os.environ.get("EMBED_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
+    )
+
     run_cfg = RunConfig(max_workers=1, timeout=180, max_retries=10, max_wait=90)
+    
+    faith_metric = Faithfulness(llm=judge_llm)
+    answer_metric = AnswerRelevancy(llm=judge_llm, embeddings=judge_embed)
+    context_metric = ContextPrecision(llm=judge_llm)
 
     result = evaluate(
         ds,
-        metrics=[faithfulness, answer_relevancy, context_precision],
+        metrics=[faith_metric, answer_metric, context_metric],
         llm=judge_llm,
         embeddings=judge_embed,
         run_config=run_cfg,
