@@ -52,19 +52,21 @@ flowchart LR
 
 ## Setup
 
-```bash
-# 1. Dependências
-uv venv && source .venv/bin/activate
-uv sync                       # ou: pip install -e .
+### Instalação local
 
+```bash
+# criar/ativar ambiente
+python3 -m venv .venv
+source .venv/bin/activate
+
+# instalar tudo de uma vez
+pip install -e ".[dev,eval,obs]"
 # 2. Chave (Groq)
 cp .env.example .env          # edite e cole sua GROQ_API_KEY (https://console.groq.com/keys)
-
-# 3. Instalar todas as dependências
-pip install -e .
-
 # 4. Rodar local (o 1º run baixa o modelo de embeddings e indexa o corpus)
 streamlit run src/ui/streamlit_app.py
+# Rodar a avaliação RAGAS
+python scripts/eval_ragas.py
 ```
 
 Testes (rodam sem chave; o de integração pula se não houver `GROQ_API_KEY`):
@@ -83,12 +85,30 @@ Exemplo ilustrativo (8 queries, com repetição/paráfrase para exercitar o cach
 
 | Estratégia | Custo total | Redução | Cache hits |
 |---|---:|---:|---:|
-| Baseline (premium sempre) | $0.00609 | — | 0/8 |
-| + Exact + Semantic cache | $0.00542 | ~11% | 1/8 |
-| **+ Routing cheap-first** | **$0.00119** | **~80%** | 1/8 |
+| Baseline (premium sempre) | $0.00080 | — | 0/8 |
+| + Exact + Semantic cache | $0.00052 | ~35% | 2/8 |
+| **+ Routing cheap-first** | **$0.00018** | **~77%** | 2/8 |
 
 > Substitua pelos números reais do `bench.py`. Custo estimado pela tabela de preços da Groq
 > (input/output por 1M tokens). Meta da rubrica (banda "Excelente"): **≥50% de redução**.
+
+## Evaluation (RAGAS)
+
+Suite de avaliação sobre o **próprio corpus** (golden set de 12 perguntas com ground-truth,
+em `scripts/eval_ragas.py`). Métricas: faithfulness, answer_relevancy, context_precision.
+Judge na Groq (`llama-3.1-8b-instant`) + embeddings locais; `RunConfig(max_workers=1, max_retries=10)`
+para respeitar o free tier.
+
+```bash
+pip install -e ".[eval]"      # ragas, datasets, langchain-openai, langchain-huggingface
+python scripts/eval_ragas.py  # imprime as 3 médias e salva ragas_creators_report.csv
+```
+
+Resultado (preencher após rodar):
+
+```
+faithfulness=0.XX, answer_relevancy=0.XX, context_precision=0.XX
+```
 
 ## Design decisions
 

@@ -2,7 +2,7 @@ Metadata-Version: 2.4
 Name: assistente-criador-conteudo
 Version: 0.1.0
 Summary: Assistente RAG para criadores de conteudo (publicidade, saude, direitos autorais, LGPD)
-Requires-Python: >=3.10
+Requires-Python: <4.0,>=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: openai>=1.40
 Requires-Dist: chromadb>=0.5
@@ -19,6 +19,11 @@ Requires-Dist: pytest>=8.0; extra == "dev"
 Requires-Dist: ruff>=0.6; extra == "dev"
 Provides-Extra: obs
 Requires-Dist: langfuse>=2.0; extra == "obs"
+Provides-Extra: eval
+Requires-Dist: ragas>=0.2; extra == "eval"
+Requires-Dist: datasets>=2.0; extra == "eval"
+Requires-Dist: langchain-openai>=0.1; extra == "eval"
+Requires-Dist: langchain-huggingface>=0.1; extra == "eval"
 
 # 🎬 Assistente do Criador de Conteúdo
 
@@ -82,7 +87,10 @@ uv sync                       # ou: pip install -e .
 # 2. Chave (Groq)
 cp .env.example .env          # edite e cole sua GROQ_API_KEY (https://console.groq.com/keys)
 
-# 3. Rodar local (o 1º run baixa o modelo de embeddings e indexa o corpus)
+# 3. Instalar todas as dependências
+pip install -e .
+
+# 4. Rodar local (o 1º run baixa o modelo de embeddings e indexa o corpus)
 streamlit run src/ui/streamlit_app.py
 ```
 
@@ -108,6 +116,24 @@ Exemplo ilustrativo (8 queries, com repetição/paráfrase para exercitar o cach
 
 > Substitua pelos números reais do `bench.py`. Custo estimado pela tabela de preços da Groq
 > (input/output por 1M tokens). Meta da rubrica (banda "Excelente"): **≥50% de redução**.
+
+## Evaluation (RAGAS)
+
+Suite de avaliação sobre o **próprio corpus** (golden set de 12 perguntas com ground-truth,
+em `scripts/eval_ragas.py`). Métricas: faithfulness, answer_relevancy, context_precision.
+Judge na Groq (`llama-3.1-8b-instant`) + embeddings locais; `RunConfig(max_workers=1, max_retries=10)`
+para respeitar o free tier.
+
+```bash
+pip install -e ".[eval]"      # ragas, datasets, langchain-openai, langchain-huggingface
+python scripts/eval_ragas.py  # imprime as 3 médias e salva ragas_creators_report.csv
+```
+
+Resultado (preencher após rodar):
+
+```
+faithfulness=0.XX, answer_relevancy=0.XX, context_precision=0.XX
+```
 
 ## Design decisions
 

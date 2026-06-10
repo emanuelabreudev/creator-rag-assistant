@@ -3,7 +3,7 @@ name = "assistente-criador-conteudo"
 version = "0.1.0"
 description = "Assistente RAG para criadores de conteudo (publicidade, saude, direitos autorais, LGPD)"
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "openai>=1.40",
     "chromadb>=0.5",
@@ -20,6 +20,16 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 obs = ["langfuse>=2.0"]
+eval = [
+    "ragas==0.4.3",
+    "datasets>=2.0",
+    "langchain-openai>=0.1",
+    "langchain-huggingface>=0.1",
+    "langchain-community<0.4.2",
+]
+
+[tool.poetry]
+package-mode = false
 
 [tool.poetry]
 package-mode = false
